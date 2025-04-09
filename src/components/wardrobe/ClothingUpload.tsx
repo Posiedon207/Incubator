@@ -95,7 +95,7 @@ export const ClothingUpload = () => {
         throw new Error('Failed to get public URL for uploaded image');
       }
 
-      // 3. Save clothing item to the database
+      // 3. Save clothing item to the database with proper typings
       const { error: insertError } = await supabase
         .from('clothing_items')
         .insert({

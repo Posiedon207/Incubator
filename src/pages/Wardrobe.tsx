@@ -33,8 +33,7 @@ const Wardrobe = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('clothing_items')
-          .select('*')
-          .order('created_at', { ascending: false });
+          .select('*');
         
         if (error) throw error;
         
@@ -70,7 +69,7 @@ const Wardrobe = () => {
       if (deleteError) throw deleteError;
       
       // Try to delete the image from storage if possible
-      if (item?.image_url) {
+      if (item && item.image_url) {
         const imagePath = item.image_url.split('/').slice(-2).join('/');
         await supabase.storage.from('clothing-images').remove([imagePath]);
       }
@@ -128,7 +127,11 @@ const Wardrobe = () => {
             {filteredItems.map((item) => (
               <ClothingItem
                 key={item.id}
-                {...item}
+                id={item.id}
+                name={item.name}
+                type={item.type}
+                color={item.color}
+                imageUrl={item.image_url}
                 onDelete={handleDelete}
               />
             ))}
