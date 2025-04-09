@@ -91,9 +91,44 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 .clos8-container {
   @apply max-w-md mx-auto px-4 pb-16 min-h-screen;
+}
+
+/* Card elevation styles */
+.card-elevation-1 {
+  @apply shadow-sm;
+}
+
+.card-elevation-2 {
+  @apply shadow;
+}
+
+.card-elevation-3 {
+  @apply shadow-md;
+}
+
+/* Button animations */
+.btn-hover-effect {
+  @apply transition-all duration-300 hover:shadow-md hover:scale-105;
+}
+
+/* Page transitions */
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
