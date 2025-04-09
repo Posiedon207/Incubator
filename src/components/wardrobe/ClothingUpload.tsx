@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Camera, Upload } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 export const ClothingUpload = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
