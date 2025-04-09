@@ -1,18 +1,25 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/navigation/Header';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Settings, LogOut, Heart, Info, User, Moon, Bell, Share2 } from 'lucide-react';
-import { toast } from '@/lib/toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Profile = () => {
-  const handleLogout = () => {
-    toast.success('You have been logged out');
-    // In a real app, we would handle logout with Supabase Auth
-    // And redirect to login page
+  const { user, signOut } = useAuth();
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  useEffect(() => {
+    if (user?.email) {
+      setUserEmail(user.email);
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
   };
   
   return (
@@ -28,8 +35,8 @@ const Profile = () => {
                 <User size={32} />
               </div>
               <div className="ml-4 pt-10">
-                <h2 className="font-bold text-xl">John Doe</h2>
-                <p className="text-gray-500 text-sm">john.doe@example.com</p>
+                <h2 className="font-bold text-xl">{userEmail ? userEmail.split('@')[0] : 'User'}</h2>
+                <p className="text-gray-500 text-sm">{userEmail || 'Loading...'}</p>
               </div>
             </div>
             

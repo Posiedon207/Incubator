@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,16 @@ import {
 } from '@/components/ui/select';
 import { Camera, Upload } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
 
 export const ClothingUpload = () => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [clothingData, setClothingData] = useState({
     name: '',
@@ -23,10 +31,13 @@ export const ClothingUpload = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setSelectedImage(file);
+      
+      // Create preview URL
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target) {
-          setSelectedImage(event.target.result as string);
+          setPreviewUrl(event.target.result as string);
         }
       };
       reader.readAsDataURL(file);
@@ -55,27 +66,67 @@ export const ClothingUpload = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('You must be logged in to upload clothing');
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      // Here we would connect to Supabase storage
-      console.log('Uploading clothing item:', { ...clothingData, image: selectedImage });
+      // 1. Upload image to Supabase Storage
+      const fileExt = selectedImage.name.split('.').pop();
+      const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('clothing-images')
+        .upload(filePath, selectedImage);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // 2. Create public URL for the uploaded image
+      const { data: urlData } = supabase.storage
+        .from('clothing-images')
+        .getPublicUrl(filePath);
+
+      if (!urlData.publicUrl) {
+        throw new Error('Failed to get public URL for uploaded image');
+      }
+
+      // 3. Save clothing item to the database
+      const { error: insertError } = await supabase
+        .from('clothing_items')
+        .insert({
+          user_id: user.id,
+          name: clothingData.name,
+          type: clothingData.type,
+          color: clothingData.color,
+          image_url: urlData.publicUrl,
+        });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
       
       toast.success('Clothing item added successfully!');
       
       // Reset form
       setSelectedImage(null);
+      setPreviewUrl(null);
       setClothingData({
         name: '',
         type: '',
         color: '#000000',
       });
+
+      // Navigate to wardrobe to see the new item
+      navigate('/wardrobe');
+      
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload clothing item');
+      toast.error('Failed to upload clothing item: ' + (error as Error).message);
     } finally {
       setIsUploading(false);
     }
@@ -87,9 +138,9 @@ export const ClothingUpload = () => {
         <div
           className="w-48 h-48 mb-4 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden relative"
         >
-          {selectedImage ? (
+          {previewUrl ? (
             <img
-              src={selectedImage}
+              src={previewUrl}
               alt="Selected clothing"
               className="w-full h-full object-cover"
             />

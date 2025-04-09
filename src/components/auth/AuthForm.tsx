@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/lib/toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 type FormData = {
   email: string;
@@ -11,11 +12,11 @@ type FormData = {
 };
 
 export const AuthForm = () => {
+  const { signIn, signUp, isLoading } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,36 +25,12 @@ export const AuthForm = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Here we would connect to Supabase Auth
-      console.log('Logging in with:', formData);
-      toast.success('Login successful!');
-      // Navigate to dashboard after auth
-    } catch (error) {
-      console.error('Login failed:', error);
-      toast.error('Login failed. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
+    await signIn(formData.email, formData.password);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Here we would connect to Supabase Auth
-      console.log('Signing up with:', formData);
-      toast.success('Account created successfully!');
-      // Navigate to dashboard after signup
-    } catch (error) {
-      console.error('Signup failed:', error);
-      toast.error('Signup failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    await signUp(formData.email, formData.password);
   };
 
   return (

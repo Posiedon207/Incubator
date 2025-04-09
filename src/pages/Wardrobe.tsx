@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/navigation/Header';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { ClothingItem } from '@/components/wardrobe/ClothingItem';
@@ -6,47 +7,81 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Mock wardrobe data
-const mockWardrobeItems = [
-  {
-    id: '1',
-    name: 'Blue Oxford Shirt',
-    type: 'tops',
-    imageUrl: 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9',
-    color: '#3b82f6',
-  },
-  {
-    id: '2',
-    name: 'Dark Slim Jeans',
-    type: 'bottoms',
-    imageUrl: 'https://images.unsplash.com/photo-1582562124811-c09040d0a901',
-    color: '#1e3a8a',
-  },
-  {
-    id: '3',
-    name: 'White Sneakers',
-    type: 'shoes',
-    imageUrl: 'https://images.unsplash.com/photo-1721322800607-8c38375eef04',
-    color: '#ffffff',
-  },
-  {
-    id: '4',
-    name: 'Casual Watch',
-    type: 'accessories',
-    imageUrl: 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9',
-    color: '#6b7280',
-  },
-];
+interface ClothingItemType {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+  image_url: string;
+}
 
 const Wardrobe = () => {
-  const [items, setItems] = useState(mockWardrobeItems);
+  const { user } = useAuth();
+  const [items, setItems] = useState<ClothingItemType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
-  const handleDelete = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-    toast.success('Item removed from wardrobe');
+  useEffect(() => {
+    const fetchClothingItems = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('clothing_items')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        setItems(data || []);
+      } catch (error) {
+        console.error('Error fetching clothing items:', error);
+        toast.error('Failed to load your wardrobe');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClothingItems();
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      // First get the item to get the image URL
+      const { data: item } = await supabase
+        .from('clothing_items')
+        .select('image_url')
+        .eq('id', id)
+        .single();
+        
+      // Delete from the database
+      const { error: deleteError } = await supabase
+        .from('clothing_items')
+        .delete()
+        .eq('id', id);
+      
+      if (deleteError) throw deleteError;
+      
+      // Try to delete the image from storage if possible
+      if (item?.image_url) {
+        const imagePath = item.image_url.split('/').slice(-2).join('/');
+        await supabase.storage.from('clothing-images').remove([imagePath]);
+      }
+      
+      // Update state
+      setItems(items.filter(item => item.id !== id));
+      toast.success('Item removed from wardrobe');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error('Failed to delete item');
+    }
   };
 
   const filteredItems = items.filter((item) => {
@@ -80,7 +115,11 @@ const Wardrobe = () => {
           </TabsList>
         </Tabs>
         
-        {filteredItems.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-clos8-primary"></div>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">No items found</p>
           </div>
