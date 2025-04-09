@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, Shuffle, Shirt } from 'lucide-react';
+import { Heart, Shuffle, Shirt, BriefcaseBusiness, PartyPopper } from 'lucide-react';
 
 interface ClothingItem {
   id: string;
@@ -25,11 +25,42 @@ export const OutfitSuggestion: React.FC<OutfitSuggestionProps> = ({
   onSave,
   onGenerate,
 }) => {
+  // Get the appropriate icon for the occasion
+  const getOccasionIcon = () => {
+    const occasionLower = occasion.toLowerCase();
+    if (occasionLower.includes('work')) {
+      return <BriefcaseBusiness size={24} className="text-gray-600" />;
+    } else if (occasionLower.includes('party')) {
+      return <PartyPopper size={24} className="text-gray-600" />;
+    } else if (occasionLower.includes('formal')) {
+      return <Shirt size={24} className="text-gray-600" />;
+    } else {
+      return <Shirt size={24} className="text-gray-600" />;
+    }
+  };
+
+  // Get style tips based on occasion
+  const getOccasionTips = () => {
+    const occasionLower = occasion.toLowerCase();
+    if (occasionLower.includes('casual')) {
+      return "Tip: Casual outfits work best with comfortable fabrics and relaxed fits.";
+    } else if (occasionLower.includes('work')) {
+      return "Tip: Professional attire typically features neutral colors and structured pieces.";
+    } else if (occasionLower.includes('formal')) {
+      return "Tip: Formal occasions call for refined fabrics and elegant silhouettes.";
+    } else if (occasionLower.includes('party')) {
+      return "Tip: Have fun with bold colors and statement pieces for party outfits!";
+    } else {
+      return "";
+    }
+  };
+
   // If there are no items, show a placeholder
   if (!items || items.length === 0) {
     return (
       <Card className="w-full overflow-hidden">
-        <div className="p-4 bg-muted">
+        <div className="p-4 bg-muted flex items-center gap-2">
+          {getOccasionIcon()}
           <h3 className="font-medium text-lg">{occasion}</h3>
         </div>
         <CardContent className="p-6 flex flex-col items-center justify-center h-64">
@@ -62,11 +93,27 @@ export const OutfitSuggestion: React.FC<OutfitSuggestionProps> = ({
     );
   }
 
+  // Group items by type for better display
+  const groupedItems = items.reduce((acc: Record<string, ClothingItem[]>, item) => {
+    if (!acc[item.type]) {
+      acc[item.type] = [];
+    }
+    acc[item.type].push(item);
+    return acc;
+  }, {});
+
   return (
     <Card className="w-full overflow-hidden">
-      <div className="p-4 bg-muted">
+      <div className="p-4 bg-muted flex items-center gap-2">
+        {getOccasionIcon()}
         <h3 className="font-medium text-lg">{occasion}</h3>
       </div>
+      
+      {/* Style tip */}
+      <div className="px-6 pt-4 text-sm text-gray-600 italic border-b border-gray-100 pb-3">
+        {getOccasionTips()}
+      </div>
+      
       <CardContent className="p-6 grid grid-cols-2 gap-4">
         {items.map((item) => (
           <div 
@@ -101,6 +148,7 @@ export const OutfitSuggestion: React.FC<OutfitSuggestionProps> = ({
           </div>
         ))}
       </CardContent>
+      
       <CardFooter className="flex justify-between p-4 bg-white border-t">
         <Button
           variant="outline"

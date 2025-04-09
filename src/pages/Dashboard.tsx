@@ -6,10 +6,11 @@ import { WeatherSummary } from '@/components/dashboard/WeatherSummary';
 import { OutfitSuggestion } from '@/components/outfits/OutfitSuggestion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wand2 } from 'lucide-react';
+import { Wand2, BriefcaseBusiness, PartyPopper } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { generateOutfitForOccasion } from '@/utils/outfitGeneration';
 
 // Define clothing item type
 interface ClothingItem {
@@ -118,11 +119,6 @@ const mockWardrobe = {
 
 type Occasion = 'casual' | 'work' | 'formal' | 'party';
 
-// Helper function to randomly select an item from an array
-const getRandomItem = <T,>(items: T[]): T => {
-  return items[Math.floor(Math.random() * items.length)];
-};
-
 const Dashboard = () => {
   const { user } = useAuth();
   const [currentOutfit, setCurrentOutfit] = useState<ClothingItem[]>([]);
@@ -174,39 +170,11 @@ const Dashboard = () => {
     fetchUserWardrobe();
   }, [user]);
 
-  // Generate an outfit based on the selected occasion
+  // Generate an outfit based on the selected occasion using our new utility
   const generateOutfit = () => {
     try {
-      // Create a new outfit based on the selected occasion and available wardrobe
-      const newOutfit: ClothingItem[] = [];
-      
-      // Add a top
-      if (userWardrobe.tops && userWardrobe.tops.length > 0) {
-        newOutfit.push(getRandomItem(userWardrobe.tops));
-      }
-      
-      // Add bottoms
-      if (userWardrobe.bottoms && userWardrobe.bottoms.length > 0) {
-        newOutfit.push(getRandomItem(userWardrobe.bottoms));
-      }
-      
-      // Add shoes
-      if (userWardrobe.shoes && userWardrobe.shoes.length > 0) {
-        newOutfit.push(getRandomItem(userWardrobe.shoes));
-      }
-      
-      // For formal and party, add accessories if available
-      if ((selectedOccasion === 'formal' || selectedOccasion === 'party') && 
-          userWardrobe.accessories && userWardrobe.accessories.length > 0) {
-        newOutfit.push(getRandomItem(userWardrobe.accessories));
-      }
-      
-      // For casual, only 50% chance of adding accessories
-      if (selectedOccasion === 'casual' && 
-          userWardrobe.accessories && userWardrobe.accessories.length > 0 && 
-          Math.random() > 0.5) {
-        newOutfit.push(getRandomItem(userWardrobe.accessories));
-      }
+      // Use our new occasion-specific outfit generation
+      const newOutfit = generateOutfitForOccasion(userWardrobe, selectedOccasion);
       
       // Update state with the new outfit
       setCurrentOutfit(newOutfit);
@@ -264,6 +232,18 @@ const Dashboard = () => {
     }
   };
 
+  // Get the appropriate icon for each occasion
+  const getOccasionIcon = (occasion: Occasion) => {
+    switch (occasion) {
+      case 'work':
+        return <BriefcaseBusiness size={16} />;
+      case 'party':
+        return <PartyPopper size={16} />;
+      default:
+        return null;
+    }
+  };
+
   const occasions: { value: Occasion; label: string }[] = [
     { value: 'casual', label: 'Casual' },
     { value: 'work', label: 'Work' },
@@ -290,6 +270,7 @@ const Dashboard = () => {
                   onClick={() => setSelectedOccasion(occasion.value)}
                   className={selectedOccasion === occasion.value ? "bg-clos8-primary" : ""}
                 >
+                  {getOccasionIcon(occasion.value)}
                   {occasion.label}
                 </Button>
               ))}
